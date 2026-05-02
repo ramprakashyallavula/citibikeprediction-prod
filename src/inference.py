@@ -40,15 +40,28 @@ def load_batch_of_features_from_store(
     fetch_data_to = current_date - timedelta(hours=1)
     fetch_data_from = current_date - timedelta(days=29)
     print(f"Fetching data from {fetch_data_from} to {fetch_data_to}")
-    feature_view = feature_store.get_feature_view(
-        name=config.FEATURE_VIEW_NAME, version=config.FEATURE_VIEW_VERSION
-    )
+    ts_data = None
+    try:
+        feature_view = feature_store.get_feature_view(
+            name=config.FEATURE_VIEW_NAME, version=config.FEATURE_VIEW_VERSION
+        )
+        ts_data = feature_view.get_batch_data(
+            start_time=(fetch_data_from - timedelta(days=1)),
+            end_time=(fetch_data_to + timedelta(days=1)),
+        )
+    except Exception as e:
+        # Fallback to reading directly from the feature group when
+        # feature-view batch query fails in hosted environments.
+        print(f"Feature-view batch read failed, falling back to feature group: {e}")
+        feature_group = feature_store.get_feature_group(
+            name=config.FEATURE_GROUP_NAME, version=config.FEATURE_GROUP_VERSION
+        )
+        ts_data = feature_group.select_all().read()
 
-    ts_data = feature_view.get_batch_data(
-        start_time=(fetch_data_from - timedelta(days=1)),
-        end_time=(fetch_data_to + timedelta(days=1)),
-    )
-    ts_data = ts_data[ts_data.pickup_hour.between(fetch_data_from, fetch_data_to)]
+    ts_data["pickup_hour"] = pd.to_datetime(ts_data["pickup_hour"], utc=True)
+    fetch_data_from_utc = pd.Timestamp(fetch_data_from).tz_convert("UTC")
+    fetch_data_to_utc = pd.Timestamp(fetch_data_to).tz_convert("UTC")
+    ts_data = ts_data[ts_data.pickup_hour.between(fetch_data_from_utc, fetch_data_to_utc)]
 
     # Sort data by location and time
     ts_data.sort_values(by=["pickup_location_id", "pickup_hour"], inplace=True)

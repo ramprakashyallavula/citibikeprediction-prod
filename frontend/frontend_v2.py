@@ -88,6 +88,29 @@ def create_citibike_map(shapefile_gdf, prediction_data):
         )
     ).add_to(m)
 
+    # Add clean circle markers at station centroids for a more engaging map.
+    # Marker size scales with demand so high-demand stations are instantly visible.
+    centroid_gdf = gdf.copy()
+    centroid_gdf["geometry"] = centroid_gdf.geometry.centroid
+
+    max_demand = max(float(centroid_gdf["predicted_demand"].max()), 1.0)
+    for _, row in centroid_gdf.iterrows():
+        demand = float(row["predicted_demand"])
+        radius = 4 + (12 * (demand / max_demand))
+        color = colormap(demand)
+        lat, lon = row.geometry.y, row.geometry.x
+
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=radius,
+            color="#0f172a",
+            weight=1,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.85,
+            tooltip=f"Station: {row['stationid']} | Predicted trips: {int(round(demand))}",
+        ).add_to(m)
+
     st.session_state.map_obj = m
     st.session_state.map_created = True
     return m

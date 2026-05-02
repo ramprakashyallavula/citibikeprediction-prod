@@ -56,7 +56,10 @@ def load_batch_of_features_from_store(
         feature_group = feature_store.get_feature_group(
             name=config.FEATURE_GROUP_NAME, version=config.FEATURE_GROUP_VERSION
         )
-        ts_data = feature_group.select_all().read()
+        ts_data = feature_group.filter(
+            (feature_group.pickup_hour >= (fetch_data_from - timedelta(days=1)))
+            & (feature_group.pickup_hour <= (fetch_data_to + timedelta(days=1)))
+        ).read()
 
     ts_data["pickup_hour"] = pd.to_datetime(ts_data["pickup_hour"], utc=True)
     fetch_data_from_utc = pd.Timestamp(fetch_data_from).tz_convert("UTC")

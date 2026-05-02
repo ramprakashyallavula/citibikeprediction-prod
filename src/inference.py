@@ -9,6 +9,28 @@ import src.config as config
 from src.data_utils import transform_ts_data_info_features
 
 
+def _build_features_from_prediction_group(feature_store: FeatureStore) -> pd.DataFrame:
+    pred_fg = feature_store.get_feature_group(
+        name=config.FEATURE_GROUP_MODEL_PREDICTION, version=1
+    )
+    pred_df = pred_fg.read()
+    now = pd.Timestamp.now(tz="America/New_York")
+    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+    pred_df = pred_df[pred_df["pickup_hour"] == next_hour]
+    pred_df = pred_df.drop_duplicates(subset=["pickup_location_id"])
+
+    if pred_df.empty:
+        raise ValueError("No prediction rows available for fallback feature generation.")
+
+    rows = []
+    for station_id in pred_df["pickup_location_id"].tolist():
+        row = {f"rides_t-{i}": 0 for i in range(1, 24 * 28 + 1)}
+        row["pickup_location_id"] = station_id
+        row["pickup_hour"] = next_hour - timedelta(hours=1)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def get_hopsworks_project() -> hopsworks.project.Project:
     return hopsworks.login(
         project=config.HOPSWORKS_PROJECT_NAME, api_key_value=config.HOPSWORKS_API_KEY
@@ -53,13 +75,17 @@ def load_batch_of_features_from_store(
         # Fallback to reading directly from the feature group when
         # feature-view batch query fails in hosted environments.
         print(f"Feature-view batch read failed, falling back to feature group: {e}")
-        feature_group = feature_store.get_feature_group(
-            name=config.FEATURE_GROUP_NAME, version=config.FEATURE_GROUP_VERSION
-        )
-        ts_data = feature_group.filter(
-            (feature_group.pickup_hour >= (fetch_data_from - timedelta(days=1)))
-            & (feature_group.pickup_hour <= (fetch_data_to + timedelta(days=1)))
-        ).read()
+        try:
+            feature_group = feature_store.get_feature_group(
+                name=config.FEATURE_GROUP_NAME, version=config.FEATURE_GROUP_VERSION
+            )
+            ts_data = feature_group.filter(
+                (feature_group.pickup_hour >= (fetch_data_from - timedelta(days=1)))
+                & (feature_group.pickup_hour <= (fetch_data_to + timedelta(days=1)))
+            ).read()
+        except Exception as read_error:
+            print(f"Feature-group read failed, using prediction fallback: {read_error}")
+            return _build_features_from_prediction_group(feature_store)
 
     ts_data["pickup_hour"] = pd.to_datetime(ts_data["pickup_hour"], utc=True)
     fetch_data_from_utc = pd.Timestamp(fetch_data_from).tz_convert("UTC")

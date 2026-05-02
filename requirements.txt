@@ -1,6 +1,6 @@
 confluent-kafka
 geopandas
-hopsworks
+hopsworks==4.7.*
 ipywidgets
 lightgbm
 matplotlib

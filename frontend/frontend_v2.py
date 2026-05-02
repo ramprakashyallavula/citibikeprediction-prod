@@ -119,6 +119,13 @@ with st.spinner("Fetching predictions from latest model..."):
     st.sidebar.write("Predictions ready.")
     progress_bar.progress(3 / N_STEPS)
 
+if predictions.empty:
+    st.warning(
+        "No predictions available for the next hour yet. "
+        "Please refresh in a few minutes after the inference pipeline updates."
+    )
+    st.stop()
+
 # Step 4: Plot map
 with st.spinner("Creating map..."):
     st.subheader("Predicted Citi Bike Trips by Station")

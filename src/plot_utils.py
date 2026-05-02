@@ -173,6 +173,18 @@ def plot_aggregated_time_series(
 
 
 def plot_prediction(features: pd.DataFrame, prediction: int):
+    if features.empty or prediction.empty:
+        fig = px.line(
+            x=[0],
+            y=[0],
+            template="plotly_white",
+            title="No prediction data available for selected station yet.",
+        )
+        fig.update_traces(visible=False)
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
+        return fig
+
     # Identify time series columns (e.g., historical ride counts)
     time_series_columns = [
         col for col in features.columns if col.startswith("rides_t-")

@@ -1,6 +1,6 @@
 # Citi Bike Prediction (Production)
 
-Live App: https://citibikeprediction-app-ajggpbwskcodhpvyiumn7o.streamlit.app/
+Live App: https://citibikeprediction-ramprakash.streamlit.app/
 
 The goal of this project is to take raw trip data, continuously transform it into model-ready features, generate predictions on a schedule, and serve those results in a live dashboard.
 

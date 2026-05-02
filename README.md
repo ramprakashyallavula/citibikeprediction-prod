@@ -2,10 +2,12 @@
 
 Live App: https://citibikeprediction-app-ajggpbwskcodhpvyiumn7o.streamlit.app/
 
+The goal of this project is to take raw trip data, continuously transform it into model-ready features, generate predictions on a schedule, and serve those results in a live dashboard.
+
 ## What This Project Does
 If you open the app, you can see predicted Citi Bike demand for Jersey City stations for the upcoming hour, along with a station-level trend view.
 
-The goal of this project is to take raw trip data, continuously transform it into model-ready features, generate predictions on a schedule, and serve those results in a live dashboard.
+
 
 ## How It Works (End-to-End)
 Think of this project as a 4-step loop that keeps refreshing:
@@ -72,9 +74,3 @@ These GitHub Actions workflows keep the system updated:
 - The app handles temporary no-prediction windows gracefully.
 - Hopsworks client is pinned to a backend-compatible version for stable execution.
 
-## Why This Is Portfolio-Ready
-This is not just a notebook demo. It includes:
-- production-style scheduled pipelines,
-- feature store + model registry integration,
-- automated inference publishing,
-- and a deployed, user-facing application.

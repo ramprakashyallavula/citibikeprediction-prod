@@ -106,7 +106,7 @@ def main() -> None:
             "pickup_hour": pd.to_datetime(
                 inference_features["pickup_hour"], utc=True
             ).values,
-            "predicted_demand": pd.Series(inference_predictions).round(0).values,
+            "predicted_demand": pd.Series(inference_predictions).round(0).clip(lower=0).values,
         }
     )
 

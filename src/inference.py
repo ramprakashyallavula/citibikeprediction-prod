@@ -48,7 +48,7 @@ def get_model_predictions(model, features: pd.DataFrame) -> pd.DataFrame:
 
     results = pd.DataFrame()
     results["pickup_location_id"] = features["pickup_location_id"].values
-    results["predicted_demand"] = predictions.round(0)
+    results["predicted_demand"] = predictions.round(0).clip(min=0)
 
     return results
 
@@ -144,6 +144,8 @@ def fetch_next_hour_predictions():
     df = fg.read()
     # Then filter for next hour in the DataFrame
     df = df[df["pickup_hour"] == next_hour]
+    if "predicted_demand" in df.columns:
+        df["predicted_demand"] = pd.to_numeric(df["predicted_demand"], errors="coerce").fillna(0).clip(lower=0)
 
     print(f"Current est time: {now}")
     print(f"Next hour: {next_hour}")

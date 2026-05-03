@@ -114,20 +114,30 @@ def create_citibike_map(shapefile_gdf, prediction_data):
             "fillOpacity": 0.7,
         }
 
-    folium.GeoJson(
-        gdf.to_json(),
-        style_function=style_function,
-        tooltip=folium.GeoJsonTooltip(
-            fields=["stationid", "predicted_demand"],
-            aliases=["Station ID:", "Predicted Demand:"],
-            localize=True
-        )
-    ).add_to(m)
+    geom_types = set(gdf.geometry.geom_type.unique())
+    has_polygons = any(
+        t in geom_types for t in ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
+    )
+
+    # Render boundary/zone shapes only when geometry is polygon/line-like.
+    # For point geometries, Folium falls back to default image markers (which can show as broken icons),
+    # so we skip GeoJson in that case and use custom CircleMarkers below.
+    if has_polygons:
+        folium.GeoJson(
+            gdf.to_json(),
+            style_function=style_function,
+            tooltip=folium.GeoJsonTooltip(
+                fields=["stationid", "predicted_demand"],
+                aliases=["Station ID:", "Predicted Demand:"],
+                localize=True
+            )
+        ).add_to(m)
 
     # Add clean circle markers at station centroids for a more engaging map.
     # Marker size scales with demand so high-demand stations are instantly visible.
     centroid_gdf = gdf.copy()
-    centroid_gdf["geometry"] = centroid_gdf.geometry.centroid
+    if has_polygons:
+        centroid_gdf["geometry"] = centroid_gdf.geometry.centroid
 
     max_demand = max(float(centroid_gdf["predicted_demand"].max()), 1.0)
     for _, row in centroid_gdf.iterrows():

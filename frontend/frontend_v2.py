@@ -3,25 +3,61 @@ from pathlib import Path
 import zipfile
 import folium
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import streamlit as st
 from branca.colormap import LinearColormap
 from streamlit_folium import st_folium
+
 parent_dir = str(Path(__file__).parent.parent)
 sys.path.append(parent_dir)
 from src.config import DATA_DIR
 from src.inference import fetch_next_hour_predictions, load_batch_of_features_from_store
 from src.plot_utils import plot_prediction
-import time
-import streamlit as st
+
+st.set_page_config(
+    page_title="Jersey City Citi Bike Prediction",
+    page_icon="🚲",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.markdown(
+    """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+html, body, [class*="css"]  { font-family: 'Manrope', sans-serif; }
+.stApp {
+  background:
+    radial-gradient(1200px 600px at 90% -10%, rgba(56,189,248,.13), transparent 50%),
+    radial-gradient(900px 500px at -10% 20%, rgba(34,197,94,.12), transparent 45%),
+    #050814;
+}
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, rgba(15,23,42,.95), rgba(2,6,23,.98));
+}
+.hero-card {
+  border: 1px solid rgba(148,163,184,.25);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(15,23,42,.88), rgba(30,41,59,.72));
+  padding: 1rem 1.1rem;
+  margin: .2rem 0 1rem 0;
+}
+.subtitle {
+  color: #cbd5e1;
+  font-size: 0.96rem;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 # ------------------ SESSION STATE ------------------
 if "map_created" not in st.session_state:
     st.session_state.map_created = False
 
 # ------------------ SHAPE FILE ------------------
+@st.cache_data(ttl=24 * 60 * 60, show_spinner=False)
 def load_citibike_shape_file(data_dir, url, log=True):
     data_dir = Path(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -117,8 +153,19 @@ def create_citibike_map(shapefile_gdf, prediction_data):
 
 # ------------------ STREAMLIT APP ------------------
 current_date = pd.Timestamp.now(tz="America/New_York")
-st.title("Jersey City Citi Bike Trip Prediction")
-st.header(f'{current_date.strftime("%Y-%m-%d %H:%M:%S")}')
+st.markdown(
+    f"""
+<div class="hero-card">
+  <h1 style="margin:0; font-weight:800;">Jersey City Citi Bike Trip Prediction</h1>
+  <p class="subtitle" style="margin:.35rem 0 0 0;">
+    Live next-hour station demand forecast · Last refresh: {current_date.strftime("%Y-%m-%d %H:%M:%S")}
+  </p>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.sidebar.markdown("## Dashboard Status")
 
 progress_bar = st.sidebar.progress(0)
 N_STEPS = 4
@@ -154,7 +201,12 @@ with st.spinner("Creating map..."):
     st.subheader("Predicted Citi Bike Trips by Station")
     map_obj = create_citibike_map(geo_df, predictions)
     if st.session_state.map_created:
-        st_folium(st.session_state.map_obj, width=800, height=600, returned_objects=[])
+        st_folium(
+            st.session_state.map_obj,
+            width=1100,
+            height=560,
+            returned_objects=[],
+        )
     progress_bar.progress(4 / N_STEPS)
 
 # ------------------ Prediction Stats ------------------
@@ -176,4 +228,10 @@ fig = plot_prediction(
     features=features[features["pickup_location_id"] == selected_id],
     prediction=predictions[predictions["pickup_location_id"] == selected_id],
 )
-st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+fig.update_layout(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(2,6,23,.55)",
+    font=dict(color="#e2e8f0"),
+    margin=dict(l=10, r=10, t=50, b=10),
+)
+st.plotly_chart(fig, theme=None, use_container_width=True)

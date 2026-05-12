@@ -30,7 +30,9 @@ logger.info(f"Current date and time (EST): {current_date}")
 
 # Step 2: Define the data fetching range
 fetch_data_to = current_date
-fetch_data_from = current_date - timedelta(days=28)
+# Keep more than 28 days so inference windows (24*28) always have
+# enough history to build at least one supervised row per station.
+fetch_data_from = current_date - timedelta(days=35)
 logger.info(f"Fetching data from {fetch_data_from} to {fetch_data_to}")
 
 # Step 3: Fetch raw data

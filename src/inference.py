@@ -60,7 +60,7 @@ def load_batch_of_features_from_store(
 
     # read time-series data from the feature store
     fetch_data_to = current_date - timedelta(hours=1)
-    fetch_data_from = current_date - timedelta(days=29)
+    fetch_data_from = current_date - timedelta(days=35)
     print(f"Fetching data from {fetch_data_from} to {fetch_data_to}")
     ts_data = None
     try:
@@ -95,9 +95,13 @@ def load_batch_of_features_from_store(
     # Sort data by location and time
     ts_data.sort_values(by=["pickup_location_id", "pickup_hour"], inplace=True)
 
-    features = transform_ts_data_info_features(
-        ts_data, window_size=24 * 28, step_size=23
-    )
+    try:
+        features = transform_ts_data_info_features(
+            ts_data, window_size=24 * 28, step_size=23
+        )
+    except ValueError as transform_error:
+        print(f"Feature transform failed, using prediction fallback: {transform_error}")
+        return _build_features_from_prediction_group(feature_store)
 
     return features
 

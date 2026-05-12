@@ -146,8 +146,31 @@ def fetch_next_hour_predictions():
     fs = get_feature_store()
     fg = fs.get_feature_group(name=config.FEATURE_GROUP_MODEL_PREDICTION, version=1)
     df = fg.read()
-    # Then filter for next hour in the DataFrame
-    df = df[df["pickup_hour"] == next_hour]
+    if df.empty:
+        return df
+
+    # Normalize timestamp dtype before filtering.
+    df["pickup_hour"] = pd.to_datetime(df["pickup_hour"], errors="coerce")
+    if df["pickup_hour"].dt.tz is None:
+        df["pickup_hour"] = df["pickup_hour"].dt.tz_localize("America/New_York")
+    else:
+        df["pickup_hour"] = df["pickup_hour"].dt.tz_convert("America/New_York")
+
+    # Try exact next-hour match first.
+    exact = df[df["pickup_hour"] == pd.Timestamp(next_hour)]
+
+    # Fallback: use the nearest available hour in [now, now+3h], else latest available hour.
+    if exact.empty:
+        lower = pd.Timestamp(now).replace(minute=0, second=0, microsecond=0)
+        upper = lower + timedelta(hours=3)
+        candidate = df[(df["pickup_hour"] >= lower) & (df["pickup_hour"] <= upper)]
+        if candidate.empty:
+            target_hour = df["pickup_hour"].max()
+        else:
+            target_hour = candidate["pickup_hour"].min()
+        df = df[df["pickup_hour"] == target_hour]
+    else:
+        df = exact
     if "predicted_demand" in df.columns:
         df["predicted_demand"] = pd.to_numeric(df["predicted_demand"], errors="coerce").fillna(0).clip(lower=0)
 

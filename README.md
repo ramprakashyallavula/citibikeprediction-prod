@@ -11,18 +11,26 @@ An end-to-end production-style system that predicts next-hour Citi Bike station 
 
 ## Architecture
 ```mermaid
-flowchart LR
-    A["Citi Bike Trip Data"] --> B["Feature Pipeline<br/>GitHub Actions"]
-    B --> C["Hopsworks Feature Group<br/>time_series_hourly_feature_group_citi_bike"]
-    C --> D["Feature View<br/>time_series_hourly_feature_view_citi_bike"]
+flowchart TD
+    A["Citi Bike Trip Data"]
 
-    D --> E["Model Training Pipeline<br/>LightGBM"]
-    E --> F["Hopsworks Model Registry<br/>model_demand_predictor_next6hours"]
+    B["Feature Pipeline"]
+    C["Feature Group<br/>time_series_hourly_feature_group_citi_bike"]
+    D["Feature View<br/>time_series_hourly_feature_view_citi_bike"]
 
-    D --> G["Inference Pipeline"]
+    E["Training Pipeline"]
+    F["Model Registry<br/>model_demand_predictor_next6hours"]
+
+    G["Inference Pipeline"]
+    H["Prediction Feature Group<br/>bike_6hours_model_prediction_citibike"]
+
+    I["Streamlit Dashboard"]
+
+    A --> B --> C --> D
+    D --> E --> F
+    D --> G
     F --> G
-    G --> H["Prediction Feature Group<br/>bike_6hours_model_prediction_citibike"]
-    H --> I["Streamlit Dashboard<br/>frontend/frontend_v2.py"]
+    G --> H --> I
 ```
 
 ## End-to-End Flow

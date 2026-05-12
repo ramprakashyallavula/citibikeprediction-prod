@@ -21,7 +21,9 @@ feature_store = get_feature_store()
 
 # read time-series data from the feature store
 fetch_data_to = current_date - timedelta(hours=1)
-fetch_data_from = current_date - timedelta(days=1 * 29)
+# Keep a wider history window than inference feature window (24*28) so
+# all stations retain enough hourly rows for transformation.
+fetch_data_from = current_date - timedelta(days=35)
 print(f"Fetching data from {fetch_data_from} to {fetch_data_to}")
 feature_view = feature_store.get_feature_view(
     name=config.FEATURE_VIEW_NAME, version=config.FEATURE_VIEW_VERSION
@@ -31,9 +33,9 @@ ts_data = feature_view.get_batch_data(
     start_time=(fetch_data_from - timedelta(days=1)),
     end_time=(fetch_data_to + timedelta(days=1)),
 )
-ts_data = ts_data[ts_data.pickup_hour.between(fetch_data_from, fetch_data_to)]
-ts_data.sort_values(["pickup_location_id", "pickup_hour"]).reset_index(drop=True)
-ts_data["pickup_hour"] = ts_data["pickup_hour"].dt.tz_localize(None)
+ts_data = ts_data[ts_data.pickup_hour.between(fetch_data_from, fetch_data_to)].copy()
+ts_data = ts_data.sort_values(["pickup_location_id", "pickup_hour"]).reset_index(drop=True)
+ts_data["pickup_hour"] = pd.to_datetime(ts_data["pickup_hour"], utc=True).dt.tz_localize(None)
 
 from src.data_utils import transform_ts_data_info_features
 

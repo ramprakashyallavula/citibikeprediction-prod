@@ -43,12 +43,6 @@ flowchart LR
 - Robust timestamp matching when exact next-hour rows are missing.
 - Pinned Python/runtime and Hopsworks compatibility versions for consistent deploy behavior.
 
-## Resume-Ready Impact Bullets
-- Built and deployed a live demand-forecasting platform with scheduled CI/CD pipelines and feature-store/model-registry integration.
-- Automated hourly feature ingestion, inference, and model refresh workflows via GitHub Actions to minimize manual operations.
-- Improved production reliability by adding fallback data-access paths, sparse-window handling, and prediction-safety guards.
-- Delivered an interactive, recruiter-facing Streamlit dashboard for real-time station-level demand insights.
-
 ## Run Locally
 1. Create environment and install dependencies:
    - `python -m venv .venv`

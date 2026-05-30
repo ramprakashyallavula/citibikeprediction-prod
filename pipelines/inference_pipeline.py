@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import sys
 
 import pandas as pd
 import pytz
@@ -39,7 +40,26 @@ ts_data["pickup_hour"] = pd.to_datetime(ts_data["pickup_hour"], utc=True).dt.tz_
 
 from src.data_utils import transform_ts_data_info_features
 
-features,targets = transform_ts_data_info_features_and_target(ts_data, window_size=24*28, step_size=12)
+features = None
+targets = None
+selected_window = None
+for window_size in [24 * 28, 24 * 14, 24 * 7, 24 * 3, 24]:
+    try:
+        features, targets = transform_ts_data_info_features_and_target(
+            ts_data, window_size=window_size, step_size=12
+        )
+        selected_window = window_size
+        print(f"Using window_size={window_size} for inference transformation.")
+        break
+    except ValueError as e:
+        print(f"Window size {window_size} failed: {e}")
+
+if features is None or features.empty:
+    print(
+        "No transformable rows found for any fallback window size. "
+        "Skipping inference run gracefully."
+    )
+    sys.exit(0)
 
 model = load_model_from_registry()
 

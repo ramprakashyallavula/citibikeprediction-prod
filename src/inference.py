@@ -43,6 +43,15 @@ def get_feature_store() -> FeatureStore:
 
 
 def get_model_predictions(model, features: pd.DataFrame) -> pd.DataFrame:
+    # Align feature schema with model training shape (4-week hourly lags).
+    expected_window = 24 * 28
+    lag_columns = [f"rides_t-{i}" for i in range(expected_window, 0, -1)]
+    for col in lag_columns:
+        if col not in features.columns:
+            features[col] = 0
+    # Keep consistent column order for sklearn/lightgbm inference.
+    features = features[lag_columns + ["pickup_hour", "pickup_location_id"]]
+
     # past_rides_columns = [c for c in features.columns if c.startswith('rides_')]
     predictions = model.predict(features)
 
